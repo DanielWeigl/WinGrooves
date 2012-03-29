@@ -9,6 +9,7 @@ using mshtml;
 using Microsoft.WindowsAPICodePack;
 using Microsoft.WindowsAPICodePack.Controls;
 using Microsoft.WindowsAPICodePack.Taskbar;
+using Awesomium.Core;
 
 namespace WinGrooves
 {
@@ -17,7 +18,6 @@ namespace WinGrooves
     /// </summary>
     public class FrmMain : System.Windows.Forms.Form
     {
-        private WebBrowser webBrowser1;
         private System.ComponentModel.IContainer components;
         private bool injectedSongInfoFunctions = false;
         private bool closingFromTray = false;
@@ -60,6 +60,7 @@ namespace WinGrooves
         private const int SET_FEATURE_ON_THREAD_INTERNET = 0x00000040;
         private ToolStripMenuItem Like;
         private ToolStripMenuItem Dislike;
+        private Awesomium.Windows.Forms.WebControl webControl1;
         private const int SET_FEATURE_ON_THREAD_RESTRICTED = 0x00000080;
         [DllImport("urlmon.dll")]
         [PreserveSig]
@@ -208,7 +209,6 @@ namespace WinGrooves
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmMain));
-            this.webBrowser1 = new System.Windows.Forms.WebBrowser();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.HideShow = new System.Windows.Forms.ToolStripMenuItem();
@@ -229,21 +229,10 @@ namespace WinGrooves
             this.toolStripButton4 = new System.Windows.Forms.ToolStripButton();
             this.currentSongTimer = new System.Windows.Forms.Timer(this.components);
             this.alwaysListeningTimer = new System.Windows.Forms.Timer(this.components);
+            this.webControl1 = new Awesomium.Windows.Forms.WebControl();
             this.contextMenuStrip1.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // webBrowser1
-            // 
-            this.webBrowser1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.webBrowser1.Location = new System.Drawing.Point(0, 25);
-            this.webBrowser1.MinimumSize = new System.Drawing.Size(20, 20);
-            this.webBrowser1.Name = "webBrowser1";
-            this.webBrowser1.ScriptErrorsSuppressed = true;
-            this.webBrowser1.Size = new System.Drawing.Size(1517, 690);
-            this.webBrowser1.TabIndex = 9;
-            this.webBrowser1.Url = new System.Uri("", System.UriKind.Relative);
-            this.webBrowser1.DocumentCompleted += new System.Windows.Forms.WebBrowserDocumentCompletedEventHandler(this.webBrowser1_DocumentCompleted);
             // 
             // notifyIcon1
             // 
@@ -406,24 +395,21 @@ namespace WinGrooves
             this.alwaysListeningTimer.Enabled = true;
             this.alwaysListeningTimer.Interval = 600000;
             this.alwaysListeningTimer.Tick += new System.EventHandler(this.alwaysListeningTimer_Tick);
-
-            //
-            // Win 7 toolbar buttons
-            //
-            this.buttonPrev = new ThumbnailToolbarButton(Properties.Resources.PlayerPrev, "Previous Music");
-            this.buttonPause = new ThumbnailToolbarButton(Properties.Resources.PlayerPlay, "Pause/Play Music");
-            this.isbuttonPaused = true;
-            this.isMusicPlaying = false;
-            this.buttonNext = new ThumbnailToolbarButton(Properties.Resources.PlayerNext, "Next Music");
-
-            
+            // 
+            // webControl1
+            // 
+            this.webControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.webControl1.Location = new System.Drawing.Point(0, 25);
+            this.webControl1.Name = "webControl1";
+            this.webControl1.Size = new System.Drawing.Size(1517, 690);
+            this.webControl1.TabIndex = 11;
             // 
             // FrmMain
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.CausesValidation = false;
             this.ClientSize = new System.Drawing.Size(1517, 715);
-            this.Controls.Add(this.webBrowser1);
+            this.Controls.Add(this.webControl1);
             this.Controls.Add(this.toolStrip1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "FrmMain";
@@ -449,22 +435,23 @@ namespace WinGrooves
         {
             //Check if application is aready running before running it again
             bool ok;
-            object m = new System.Threading.Mutex(true, "WinGrooves", out ok);
+            /*object m = new System.Threading.Mutex(true, "WinGrooves", out ok);
             if (!ok)
             {
                 MessageBox.Show("WinGrooves is already running.");
                 return;
-            }
+            }*/
             Application.Run(new FrmMain());
-            GC.KeepAlive(m);
+            //GC.KeepAlive(m);
         }
 
         private void FrmMain_Load(object sender, System.EventArgs e)
         {
-            webBrowser1.Navigate("http://listen.grooveshark.com");
+            webControl1.LoadURL("http://listen.grooveshark.com");
             // register the event that is fired after a key press.
             hook.KeyPressed += new EventHandler<KeyPressedEventArgs>(hook_KeyPressed);
-            webBrowser1.ObjectForScripting = this; //needed to capture JavaScript events
+            //ToDo
+            //webBrowser1.ObjectForScripting = this; //needed to capture JavaScript events
 
             //disable the IE "click sound"
             int feature = FEATURE_DISABLE_NAVIGATION_SOUNDS;
@@ -493,7 +480,7 @@ namespace WinGrooves
          * */
         private void playerExecute(string action)
         {
-            webBrowser1.Document.GetElementById(action).InvokeMember("click");
+            //webBrowser1.Document.GetElementById(action).InvokeMember("click");
         }
 
         /*
@@ -502,11 +489,11 @@ namespace WinGrooves
          * */
         private void htmlClickOn(string selector)
         {
-            if (webBrowser1.ReadyState == WebBrowserReadyState.Complete)
+            if (webControl1.IsDomReady)
             {
                 Object[] objArray = new Object[1];
                 objArray[0] = (Object)selector;
-                webBrowser1.Document.InvokeScript("clickElement", objArray);
+                //webBrowser1.Document.InvokeScript("clickElement", objArray);
             }
         }
 
@@ -681,12 +668,12 @@ namespace WinGrooves
 
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
-            webBrowser1.GoBack();
+            //webBrowser1.GoBack();
         }
 
         private void toolStripButton2_Click(object sender, EventArgs e)
         {
-            webBrowser1.GoForward();
+            //webBrowser1.GoForward();
         }
 
         private void toolStripButton3_Click(object sender, EventArgs e)
@@ -703,10 +690,10 @@ namespace WinGrooves
 
         private void currentSongTimer_Tick(object sender, EventArgs e)
         {
-            if (webBrowser1.ReadyState == WebBrowserReadyState.Complete)
+            if (webControl1.IsDomReady)
             {
                 try
-                {
+                {/*
 
                     if (!injectedSongInfoFunctions)
                     {
@@ -766,7 +753,7 @@ namespace WinGrooves
                         }
                     }
 
-
+                    */
                    // HandleThumbnailButtons();
                 }
                 catch (NullReferenceException)
@@ -795,10 +782,10 @@ namespace WinGrooves
 
         private void alwaysListeningTimer_Tick(object sender, EventArgs e)
         {
-            if (webBrowser1.ReadyState == WebBrowserReadyState.Complete)
+            if (webControl1.IsDomReady)
             {
                 //this will simulate moving the mouse so that the player doesn't stop playing music after a few minutes of not interacting with the page
-                webBrowser1.Document.InvokeScript("mouseMove");
+                webControl1.CallJavascriptFunction("document", "mouseMove", new JSValue());
             }
         }
 
